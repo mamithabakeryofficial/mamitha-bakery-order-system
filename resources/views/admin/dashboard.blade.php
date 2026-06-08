@@ -29,6 +29,97 @@
         </div>
     @endif
 
+    {{-- Operational Settings Card --}}
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-4 overflow-hidden">
+                <div class="card-header border-0 py-3 d-flex align-items-center justify-content-between" style="background: linear-gradient(135deg, #4A2E1B 0%, #6B3E26 100%);">
+                    <h5 class="fw-bold text-white mb-0">
+                        <i class="fas fa-sliders-h me-2"></i>Pengaturan Operasional Toko
+                    </h5>
+                    <span class="badge rounded-pill {{ $dailyLimit->is_active ? 'bg-success' : 'bg-secondary' }} px-3 py-2">
+                        <i class="fas fa-{{ $dailyLimit->is_active ? 'check-circle' : 'times-circle' }} me-1"></i>
+                        {{ $dailyLimit->is_active ? 'Aktif' : 'Nonaktif' }}
+                    </span>
+                </div>
+                <div class="card-body p-4">
+                    <form action="{{ route('admin.daily_limit.update') }}" method="POST">
+                        @csrf
+                        @method('PUT')
+
+                        <div class="row g-4 align-items-end">
+                            {{-- Toggle Active --}}
+                            <div class="col-lg-3 col-md-6">
+                                <label class="form-label fw-semibold text-dark mb-2">
+                                    <i class="fas fa-power-off me-1 text-muted"></i> Status Pengaturan
+                                </label>
+                                <div class="form-check form-switch form-switch-lg p-3 border rounded-3 bg-light">
+                                    <input class="form-check-input ms-0 me-2" type="checkbox" role="switch"
+                                           name="is_active" value="1" id="is_active_switch"
+                                           {{ $dailyLimit->is_active ? 'checked' : '' }}>
+                                    <label class="form-check-label fw-semibold" for="is_active_switch" id="is_active_label">
+                                        {{ $dailyLimit->is_active ? 'Aktif' : 'Nonaktif' }}
+                                    </label>
+                                </div>
+                                <small class="text-muted d-block mt-1"><i class="fas fa-info-circle me-1"></i>Aktifkan untuk menggunakan batas order & jam buka/tutup.</small>
+                            </div>
+
+                            {{-- Max Orders Per Day --}}
+                            <div class="col-lg-3 col-md-6">
+                                <label for="max_orders_per_day" class="form-label fw-semibold text-dark mb-2">
+                                    <i class="fas fa-clipboard-list me-1 text-muted"></i> Maks. Order per Hari
+                                </label>
+                                <div class="input-group">
+                                    <input type="number" name="max_orders_per_day" id="max_orders_per_day"
+                                           class="form-control form-control-lg rounded-start-3 fw-bold text-center @error('max_orders_per_day') is-invalid @enderror"
+                                           value="{{ old('max_orders_per_day', $dailyLimit->max_orders_per_day) }}"
+                                           min="0" required>
+                                    <span class="input-group-text bg-light fw-semibold">pesanan</span>
+                                </div>
+                                @error('max_orders_per_day')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Opening Time --}}
+                            <div class="col-lg-2 col-md-4">
+                                <label for="opening_time" class="form-label fw-semibold text-dark mb-2">
+                                    <i class="fas fa-door-open me-1 text-success"></i> Jam Buka
+                                </label>
+                                <input type="time" name="opening_time" id="opening_time"
+                                       class="form-control form-control-lg rounded-3 fw-bold text-center @error('opening_time') is-invalid @enderror"
+                                       value="{{ old('opening_time', $dailyLimit->opening_time) }}" required>
+                                @error('opening_time')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Closing Time --}}
+                            <div class="col-lg-2 col-md-4">
+                                <label for="closing_time" class="form-label fw-semibold text-dark mb-2">
+                                    <i class="fas fa-door-closed me-1 text-danger"></i> Jam Tutup
+                                </label>
+                                <input type="time" name="closing_time" id="closing_time"
+                                       class="form-control form-control-lg rounded-3 fw-bold text-center @error('closing_time') is-invalid @enderror"
+                                       value="{{ old('closing_time', $dailyLimit->closing_time) }}" required>
+                                @error('closing_time')
+                                    <div class="text-danger small mt-1">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            {{-- Save Button --}}
+                            <div class="col-lg-2 col-md-4">
+                                <button type="submit" class="btn btn-primary-custom w-100 py-3 rounded-3 fw-bold shadow-sm">
+                                    <i class="fas fa-save me-2"></i>Simpan
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     {{-- Summary Cards --}}
     <div class="row mb-5 g-4">
         <div class="col-md-3">
@@ -262,6 +353,15 @@
                         }
                     }
                 }
+            });
+        }
+
+        // Toggle label for is_active switch
+        const activeSwitch = document.getElementById('is_active_switch');
+        const activeLabel = document.getElementById('is_active_label');
+        if (activeSwitch && activeLabel) {
+            activeSwitch.addEventListener('change', function() {
+                activeLabel.textContent = this.checked ? 'Aktif' : 'Nonaktif';
             });
         }
     });

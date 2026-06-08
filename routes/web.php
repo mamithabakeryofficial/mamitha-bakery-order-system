@@ -78,9 +78,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
     // Order Management
     Route::get('/orders', [\App\Http\Controllers\Admin\OrderController::class, 'index'])->name('admin.orders.index');
     Route::get('/orders/{order}', [\App\Http\Controllers\Admin\OrderController::class, 'show'])->name('admin.orders.show')->withTrashed();
-    Route::put('/orders/{order}/status', [\App\Http\Controllers\Admin\OrderController::class, 'updateStatus'])->name('admin.orders.updateStatus');
-    Route::post('/orders/{order}/confirm-cash', [\App\Http\Controllers\Admin\OrderController::class, 'confirmCashPayment'])->name('admin.orders.confirmCash');
-    Route::post('/orders/{order}/assign-courier', [\App\Http\Controllers\Admin\OrderController::class, 'assignCourier'])->name('admin.orders.assignCourier');
+    Route::put('/orders/{order}/status', [\App\Http\Controllers\Admin\OrderController::class, 'updateStatus'])->name('admin.orders.updateStatus')->withTrashed();
+    Route::post('/orders/{order}/confirm-cash', [\App\Http\Controllers\Admin\OrderController::class, 'confirmCashPayment'])->name('admin.orders.confirmCash')->withTrashed();
+    Route::post('/orders/{order}/assign-courier', [\App\Http\Controllers\Admin\OrderController::class, 'assignCourier'])->name('admin.orders.assignCourier')->withTrashed();
     
     // Financial Reports
     Route::get('/reports', [\App\Http\Controllers\Admin\ReportController::class, 'index'])->name('admin.reports.index');
@@ -95,6 +95,9 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
         'destroy' => 'admin.staff.destroy',
     ]);
     
+    // Daily Limit & Operational Hours
+    Route::put('/daily-limit', [AdminController::class, 'updateDailyLimit'])->name('admin.daily_limit.update');
+    
     // Reset Data
     Route::post('/reset-transactions', [AdminController::class, 'resetTransactions'])->name('admin.reset_transactions');
 });
@@ -103,14 +106,14 @@ Route::middleware(['auth', 'role:admin'])->prefix('admin')->group(function () {
 Route::middleware(['auth', 'role:kitchen'])->prefix('kitchen')->group(function () {
     Route::get('/dashboard', [KitchenController::class, 'dashboard'])->name('kitchen.dashboard');
     Route::get('/orders/check-new', [KitchenController::class, 'checkNewOrders'])->name('kitchen.orders.checkNew');
-    Route::post('/orders/{order}/status', [KitchenController::class, 'updateStatus'])->name('kitchen.orders.updateStatus');
-    Route::get('/orders/{order}/print', [KitchenController::class, 'print'])->name('kitchen.orders.print');
+    Route::post('/orders/{order}/status', [KitchenController::class, 'updateStatus'])->name('kitchen.orders.updateStatus')->withTrashed();
+    Route::get('/orders/{order}/print', [KitchenController::class, 'print'])->name('kitchen.orders.print')->withTrashed();
 });
 
 // Courier Routes
 Route::middleware(['auth', 'role:courier'])->prefix('courier')->group(function () {
     Route::get('/dashboard', [CourierController::class, 'dashboard'])->name('courier.dashboard');
-    Route::post('/orders/{order}/complete', [CourierController::class, 'completeDelivery'])->name('courier.orders.complete');
+    Route::post('/orders/{order}/complete', [CourierController::class, 'completeDelivery'])->name('courier.orders.complete')->withTrashed();
 });
 
 // Customer Routes
@@ -120,29 +123,38 @@ Route::middleware(['auth'])->prefix('customer')->group(function () {
     Route::put('/profile', [\App\Http\Controllers\ProfileController::class, 'update'])->name('customer.profile.update');
     Route::put('/profile/password', [\App\Http\Controllers\ProfileController::class, 'updatePassword'])->name('customer.password.update');
     
-    // Order Routes
+    // Order Routes (accessible even when store is closed)
     Route::get('/orders', [\App\Http\Controllers\CustomerOrderController::class, 'index'])->name('customer.orders.index');
     Route::get('/orders/{order}', [\App\Http\Controllers\CustomerOrderController::class, 'show'])->name('customer.orders.show')->withTrashed();
     Route::get('/orders/{order}/invoice', [\App\Http\Controllers\CustomerOrderController::class, 'invoice'])->name('customer.orders.invoice')->withTrashed();
     
-    // Product Catalog Routes
-    Route::get('/products', [\App\Http\Controllers\CustomerProductController::class, 'index'])->name('customer.products.index');
-    Route::get('/products/{product:slug}', [\App\Http\Controllers\CustomerProductController::class, 'show'])->name('customer.products.show');
-    
-    // Cart Routes
-    Route::get('/cart', [\App\Http\Controllers\CustomerCartController::class, 'index'])->name('customer.cart.index');
-    Route::post('/cart/add', [\App\Http\Controllers\CustomerCartController::class, 'add'])->name('customer.cart.add');
-    Route::post('/cart/update', [\App\Http\Controllers\CustomerCartController::class, 'update'])->name('customer.cart.update');
-    Route::post('/cart/remove', [\App\Http\Controllers\CustomerCartController::class, 'remove'])->name('customer.cart.remove');
-    Route::post('/cart/clear', [\App\Http\Controllers\CustomerCartController::class, 'clear'])->name('customer.cart.clear');
-    
-    // Checkout Routes
-    Route::get('/checkout', [\App\Http\Controllers\CustomerCheckoutController::class, 'index'])->name('customer.checkout.index');
-    Route::post('/checkout/store', [\App\Http\Controllers\CustomerCheckoutController::class, 'store'])->name('customer.checkout.store');
-    
-    // Notification Routes
+    // Notification Routes (accessible even when store is closed)
     Route::put('/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markAsRead'])->name('customer.notifications.read');
     Route::post('/notifications/read-all', [\App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('customer.notifications.readAll');
+    
+    // Store Closed page
+    Route::get('/store-closed', function () {
+        $dailyLimit = \App\Models\DailyLimit::first();
+        return view('customer.store-closed', compact('dailyLimit'));
+    })->name('customer.store_closed');
+    
+    // Routes that require the store to be open
+    Route::middleware(['store.open'])->group(function () {
+        // Product Catalog Routes
+        Route::get('/products', [\App\Http\Controllers\CustomerProductController::class, 'index'])->name('customer.products.index');
+        Route::get('/products/{product:slug}', [\App\Http\Controllers\CustomerProductController::class, 'show'])->name('customer.products.show');
+        
+        // Cart Routes
+        Route::get('/cart', [\App\Http\Controllers\CustomerCartController::class, 'index'])->name('customer.cart.index');
+        Route::post('/cart/add', [\App\Http\Controllers\CustomerCartController::class, 'add'])->name('customer.cart.add');
+        Route::post('/cart/update', [\App\Http\Controllers\CustomerCartController::class, 'update'])->name('customer.cart.update');
+        Route::post('/cart/remove', [\App\Http\Controllers\CustomerCartController::class, 'remove'])->name('customer.cart.remove');
+        Route::post('/cart/clear', [\App\Http\Controllers\CustomerCartController::class, 'clear'])->name('customer.cart.clear');
+        
+        // Checkout Routes
+        Route::get('/checkout', [\App\Http\Controllers\CustomerCheckoutController::class, 'index'])->name('customer.checkout.index');
+        Route::post('/checkout/store', [\App\Http\Controllers\CustomerCheckoutController::class, 'store'])->name('customer.checkout.store');
+    });
 });
 
 // Midtrans Webhook Notification Route

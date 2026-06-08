@@ -7,6 +7,7 @@ use App\Models\OrderDetail;
 use App\Models\Payment;
 use App\Models\CartItem;
 use App\Models\Notification;
+use App\Models\DailyLimit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -55,6 +56,26 @@ class CustomerCheckoutController extends Controller
         $totalPrice = $cartItems->sum(function ($item) {
             return $item->qty * $item->product->price;
         });
+
+        // -----------------------------------------------------
+        // Check Daily Order Limit before proceeding
+        // -----------------------------------------------------
+        $dailyLimit = DailyLimit::first();
+        
+        if ($dailyLimit && $dailyLimit->is_active) {
+            $today = \Carbon\Carbon::today('Asia/Jakarta')->format('Y-m-d');
+            
+            // Count today's orders that are not cancelled or expired
+            // Note: withTrashed() is optional depending on if soft deletes should count, 
+            // usually we don't want to count cancelled ones.
+            $todayOrderCount = Order::whereDate('order_date', $today)
+                ->whereNotIn('status', ['cancelled', 'expired'])
+                ->count();
+                
+            if ($todayOrderCount >= $dailyLimit->max_orders_per_day) {
+                return redirect()->route('customer.cart.index')->with('error', 'Mohon maaf, batas maksimal pesanan harian toko telah tercapai. Silakan coba kembali besok.');
+            }
+        }
 
         DB::beginTransaction();
 

@@ -13,6 +13,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'store.open' => \App\Http\Middleware\CheckStoreOpen::class,
         ]);
         
         $middleware->validateCsrfTokens(except: [

@@ -37,6 +37,14 @@ class AdminController extends Controller
             ->orderBy('date')
             ->get();
 
+        $dailyLimit = \App\Models\DailyLimit::firstOrCreate([], [
+            'max_orders_per_day' => 100,
+            'max_products_per_day' => 500,
+            'opening_time' => '08:00',
+            'closing_time' => '20:00',
+            'is_active' => true,
+        ]);
+
         return view('admin.dashboard', compact(
             'totalOrders',
             'totalRevenue',
@@ -47,8 +55,29 @@ class AdminController extends Controller
             'completedOrders',
             'cancelledOrders',
             'recentOrders',
-            'dailyRevenue'
+            'dailyRevenue',
+            'dailyLimit'
         ));
+    }
+
+    public function updateDailyLimit(Request $request)
+    {
+        $request->validate([
+            'max_orders_per_day' => 'required|integer|min:0',
+            'opening_time' => 'required',
+            'closing_time' => 'required',
+            'is_active' => 'sometimes|boolean',
+        ]);
+
+        $dailyLimit = \App\Models\DailyLimit::firstOrCreate([]);
+        $dailyLimit->update([
+            'max_orders_per_day' => $request->max_orders_per_day,
+            'opening_time' => $request->opening_time,
+            'closing_time' => $request->closing_time,
+            'is_active' => $request->has('is_active'),
+        ]);
+
+        return redirect()->route('admin.dashboard')->with('status', 'Pengaturan batas order dan jam operasional berhasil diperbarui.');
     }
 
     public function resetTransactions()
