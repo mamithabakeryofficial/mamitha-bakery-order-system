@@ -10,7 +10,7 @@
             <div class="col-md-6 d-none d-md-block bg-primary-custom position-relative">
                 <div class="position-absolute w-100 h-100" style="background: url('https://images.unsplash.com/photo-1509440159596-0249088772ff?q=80&w=1000&auto=format&fit=crop') center/cover; opacity: 0.6;"></div>
                 <div class="position-absolute w-100 h-100 d-flex flex-column justify-content-center align-items-center text-white p-5 text-center" style="background: rgba(139, 69, 19, 0.4);">
-                    <h2 class="fw-bold mb-3">Selamat Datang di Mamitha Bakery!</h2>
+                    <h2 class="fw-bold mb-3 text-white">Selamat Datang di Mamitha Bakery!</h2>
                     <p class="lead">Rasakan kelezatan roti dan kue segar buatan rumah setiap hari. Promo spesial menanti Anda!</p>
                 </div>
             </div>
@@ -64,6 +64,20 @@
                     </div>
 
                     <button type="submit" class="btn btn-primary-custom w-100 py-2 fw-bold rounded-3 mb-3">LOGIN</button>
+
+                    <div class="position-relative my-4">
+                        <hr class="text-muted">
+                        <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted small">atau</span>
+                    </div>
+
+                    <div class="d-grid gap-2 mb-3">
+                        <a href="{{ route('auth.google') }}" class="btn btn-outline-danger w-100 py-2 fw-semibold rounded-3 d-flex align-items-center justify-content-center gap-2">
+                            <i class="fab fa-google"></i> Lanjutkan dengan Google
+                        </a>
+                        <a href="{{ route('auth.facebook') }}" class="btn btn-outline-primary w-100 py-2 fw-semibold rounded-3 d-flex align-items-center justify-content-center gap-2">
+                            <i class="fab fa-facebook-f"></i> Lanjutkan dengan Facebook
+                        </a>
+                    </div>
 
                     <div class="text-center">
                         <p class="text-muted mb-2">Belum punya akun? <a href="{{ route('register') }}" class="text-primary-custom fw-semibold text-decoration-none">Buat Akun Baru</a></p>

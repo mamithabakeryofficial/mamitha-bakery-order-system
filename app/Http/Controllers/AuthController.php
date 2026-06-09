@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Mail\ResetPasswordOtp;
 use Carbon\Carbon;
+use Laravel\Socialite\Facades\Socialite;
 
 class AuthController extends Controller
 {
@@ -87,6 +88,105 @@ class AuthController extends Controller
         Auth::login($user);
 
         return redirect('/customer/dashboard')->with('success', 'Pendaftaran berhasil!');
+    }
+
+    // ── Social Login ──
+
+    public function redirectToGoogle()
+    {
+        return Socialite::driver('google')->redirect();
+    }
+
+    public function handleGoogleCallback()
+    {
+        try {
+            $socialUser = Socialite::driver('google')->user();
+        } catch (\Exception $e) {
+            return redirect()->route('login')->withErrors(['login' => 'Login Google gagal. Silakan coba lagi.']);
+        }
+
+        return $this->handleSocialUser($socialUser, 'google');
+    }
+
+    public function redirectToFacebook()
+    {
+        return Socialite::driver('facebook')->redirect();
+    }
+
+    public function handleFacebookCallback()
+    {
+        try {
+            $socialUser = Socialite::driver('facebook')->user();
+        } catch (\Exception $e) {
+            return redirect()->route('login')->withErrors(['login' => 'Login Facebook gagal. Silakan coba lagi.']);
+        }
+
+        return $this->handleSocialUser($socialUser, 'facebook');
+    }
+
+    protected function handleSocialUser($socialUser, string $provider)
+    {
+        $user = User::where('provider', $provider)
+                    ->where('provider_id', $socialUser->getId())
+                    ->first();
+
+        if ($user) {
+            Auth::login($user, true);
+            return $this->redirectByRole($user);
+        }
+
+        $existingUser = User::where('email', $socialUser->getEmail())->first();
+
+        if ($existingUser) {
+            $existingUser->update([
+                'provider' => $provider,
+                'provider_id' => $socialUser->getId(),
+                'provider_token' => $socialUser->token,
+            ]);
+
+            Auth::login($existingUser, true);
+            return $this->redirectByRole($existingUser);
+        }
+
+        $name = $socialUser->getName();
+        $username = str($name)->snake()->limit(20, '')->toString() . '_' . substr($socialUser->getId(), 0, 6);
+        $baseUsername = $username;
+        $counter = 1;
+        while (User::where('username', $username)->exists()) {
+            $username = $baseUsername . $counter;
+            $counter++;
+        }
+
+        $user = User::create([
+            'name' => $name,
+            'username' => $username,
+            'email' => $socialUser->getEmail(),
+            'password' => Hash::make(str()->random(32)),
+            'role' => 'customer',
+            'provider' => $provider,
+            'provider_id' => $socialUser->getId(),
+            'provider_token' => $socialUser->token,
+        ]);
+
+        CustomerProfile::create([
+            'user_id' => $user->id,
+        ]);
+
+        Auth::login($user, true);
+
+        return redirect()->route('customer.dashboard')->with('success', 'Login berhasil dengan ' . ucfirst($provider) . '!');
+    }
+
+    protected function redirectByRole($user)
+    {
+        if ($user->isAdmin()) {
+            return redirect()->intended('/admin/dashboard');
+        } elseif ($user->isKitchen()) {
+            return redirect()->intended('/kitchen/dashboard');
+        } elseif ($user->isCourier()) {
+            return redirect()->intended('/courier/dashboard');
+        }
+        return redirect()->intended('/customer/dashboard');
     }
 
     public function logout(Request $request)
